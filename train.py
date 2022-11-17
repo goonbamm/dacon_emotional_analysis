@@ -8,7 +8,7 @@ import argparse
 
 import torch.nn as nn
 
-from tqdm import tqdm
+from tqdm.auto import tqdm
 from model import ERC_model
 from torch.cuda.amp import autocast, GradScaler
 from torch.utils.data import Dataset, DataLoader
