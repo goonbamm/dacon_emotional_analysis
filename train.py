@@ -28,9 +28,8 @@ def CELoss(pred_outs, labels):
     return loss_val
 
     
-## finetune RoBERTa-large
 def main():    
-    """Dataset Loading"""
+    # hyperparameter setting
     batch_size = args.batch
     dataset = args.dataset
     dataclass = args.cls
@@ -40,6 +39,7 @@ def main():
     initial = args.initial
     use_amp = True
     
+    # dataset setting
     dataType = 'multi'
     if dataset == 'MELD':
         if args.dyadic:
@@ -48,38 +48,50 @@ def main():
             dataType = 'multi'
         data_path = './dataset/MELD/'+dataType+'/'
         DATA_loader = MELD_loader
+
     elif dataset == 'EMORY':
         data_path = './dataset/EMORY/'
         DATA_loader = Emory_loader
+
     elif dataset == 'iemocap':
         data_path = './dataset/iemocap/'
         DATA_loader = IEMOCAP_loader
+
     elif dataset == 'dailydialog':
         data_path = './dataset/dailydialog/'
         DATA_loader = DD_loader    
-        
+    
+    # batch setting
     if 'roberta' in model_type:
         make_batch = make_batch_roberta
+        
     elif model_type == 'bert-large-uncased':
         make_batch = make_batch_bert
+
     else:
         make_batch = make_batch_gpt  
         
+    # freeze setting
     if freeze:
         freeze_type = 'freeze'
+        
     else:
         freeze_type = 'no_freeze'
-        
+
+    # dataset loading        
     train_path = data_path + dataset+'_train.txt'
     dev_path = data_path + dataset+'_dev.txt'
     test_path = data_path + dataset+'_test.txt'
             
     train_dataset = DATA_loader(train_path, dataclass)
+
     if sample < 1.0:
         train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, num_workers=4, collate_fn=make_batch)
+
     else:
         train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, collate_fn=make_batch)
-    train_sample_num = int(len(train_dataloader)*sample)
+
+    train_sample_num = int(len(train_dataloader) * sample)
     
     dev_dataset = DATA_loader(dev_path, dataclass)
     dev_dataloader = DataLoader(dev_dataset, batch_size=1, shuffle=False, num_workers=4, collate_fn=make_batch)
@@ -92,8 +104,10 @@ def main():
     
     print("###Save Path### ", save_path)
     log_path = os.path.join(save_path, 'train.log')
+
     if not os.path.exists(save_path):
         os.makedirs(save_path)
+
     fileHandler = logging.FileHandler(log_path)
     
     logger.addHandler(streamHandler)

@@ -1,17 +1,21 @@
-import numpy as np
+import os
+import sys
+import pdb
+import math
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import os, sys
-import math
-import pandas as pd
-import pdb
 
-from transformers import RobertaTokenizer, RobertaModel
+import numpy as np
+import pandas as pd
+
+
 from transformers import BertTokenizer, BertModel
 from transformers import GPT2Tokenizer, GPT2Model
-
 from transformers import RobertaConfig, BertConfig
+from transformers import RobertaTokenizer, RobertaModel
+
 
 class ERC_model(nn.Module):
     def __init__(self, model_type, clsNum, last, freeze, initial):
@@ -20,25 +24,29 @@ class ERC_model(nn.Module):
         self.last = last
         
         """Model Setting"""
-        # model_path = '/data/project/rw/rung/model/'+model_type
         model_path = model_type
+        
         if 'roberta' in model_type:
             self.context_model = RobertaModel.from_pretrained(model_path)
                     
             if initial == 'scratch':
                 config = RobertaConfig.from_pretrained(model_path)
                 self.speaker_model = RobertaModel(config)
+                
             else:
                 self.speaker_model = RobertaModel.from_pretrained(model_path)
+                
         elif model_type == 'bert-large-uncased':
             self.context_model = BertModel.from_pretrained(model_path)
             
             if initial == 'scratch':
                 config = BertConfig.from_pretrained(model_path)
                 self.speaker_model = BertModel(config)
+
             else:
                 self.speaker_model = BertModel.from_pretrained(model_path)
-        else:
+
+        else: # GPT
             self.context_model = GPT2Model.from_pretrained(model_path)
             tokenizer = GPT2Tokenizer.from_pretrained(model_path)
             tokenizer.add_special_tokens({'cls_token': '[CLS]', 'pad_token': '[PAD]'})
@@ -46,6 +54,7 @@ class ERC_model(nn.Module):
             
             self.speaker_model = GPT2Model.from_pretrained(model_path)
             self.speaker_model.resize_token_embeddings(len(tokenizer))
+            
         self.hiddenDim = self.context_model.config.hidden_size
         
         zero = torch.empty(2, 1, self.hiddenDim).cuda()
