@@ -143,10 +143,10 @@ def main():
     
     scaler = GradScaler(enabled=use_amp)
     
-    for epoch in tqdm(range(training_epochs)):
+    for epoch in tqdm(range(training_epochs), desc='training loops'):
         model.train() 
         
-        for i_batch, data in enumerate(train_dataloader):
+        for i_batch, data in tqdm(enumerate(train_dataloader), desc='batch'):
             optimizer.zero_grad()
             
             if i_batch > train_sample_num:
@@ -202,19 +202,21 @@ def main():
                 best_epoch = epoch
                 _SaveModel(model, save_path)
         
-        if epoch % 5 == 0:
-            logger.info('Epoch: {}'.format(epoch))
-            if dataset == 'dailydialog': # micro & macro
-                logger.info('Devleopment ## accuracy: {}, macro-fscore: {}, micro-fscore: {}'.format(dev_acc, dev_fbeta_macro, dev_fbeta_micro))
-                logger.info('') 
-            else:
-                logger.info('Devleopment ## accuracy: {}, precision: {}, recall: {}, fscore: {}'.format(dev_acc, dev_pre, dev_rec, dev_fbeta))
-                logger.info('')
+        logger.info('Epoch: {}'.format(epoch))
+        
+        if dataset == 'dailydialog': # micro & macro
+            logger.info('Devleopment ## accuracy: {}, macro-fscore: {}, micro-fscore: {}'.format(dev_acc, dev_fbeta_macro, dev_fbeta_micro))
+            logger.info('') 
+        else:
+            logger.info('Devleopment ## accuracy: {}, precision: {}, recall: {}, fscore: {}'.format(dev_acc, dev_pre, dev_rec, dev_fbeta))
+            logger.info('')
         
     if dataset == 'dailydialog': # micro & macro
         logger.info('Final Fscore ## test-accuracy: {}, test-macro: {}, test-micro: {}, test_epoch: {}'.format(test_acc, test_fbeta_macro, test_fbeta_micro, best_epoch))
+        
     else:
         logger.info('Final Fscore ## test-accuracy: {}, test-fscore: {}, test_epoch: {}'.format(test_acc, test_fbeta, best_epoch))         
+   
     
 def _CalACC(model, dataloader):
     model.eval()
