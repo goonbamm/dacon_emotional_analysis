@@ -1,22 +1,22 @@
 # -*- coding: utf-8 -*-
-from tqdm import tqdm
 import os
-import random
+import pdb
 import torch
+import random
+import logging
+import argparse
+
 import torch.nn as nn
 
-from transformers import RobertaTokenizer
-from ERC_dataset import MELD_loader, Emory_loader, IEMOCAP_loader, DD_loader
+from tqdm import tqdm
 from model import ERC_model
-# from ERCcombined import ERC_model
-
+from torch.cuda.amp import autocast, GradScaler
 from torch.utils.data import Dataset, DataLoader
-from transformers import get_linear_schedule_with_warmup
-import pdb
-import argparse, logging
 from sklearn.metrics import precision_recall_fscore_support
-
 from utils import make_batch_roberta, make_batch_bert, make_batch_gpt
+from transformers import RobertaTokenizer, get_linear_schedule_with_warmup
+from ERC_dataset import MELD_loader, Emory_loader, IEMOCAP_loader, DD_loader
+
 
 def CELoss(pred_outs, labels):
     """
@@ -28,7 +28,7 @@ def CELoss(pred_outs, labels):
     return loss_val
 
     
-## finetune RoBETa-large
+## finetune RoBERTa-large
 def main():    
     """Dataset Loading"""
     batch_size = args.batch
@@ -38,6 +38,7 @@ def main():
     model_type = args.pretrained
     freeze = args.freeze
     initial = args.initial
+    use_amp = True
     
     dataType = 'multi'
     if dataset == 'MELD':
@@ -116,9 +117,8 @@ def main():
     save_term = int(training_epochs/5)
     max_grad_norm = args.norm
     lr = args.lr
-    num_training_steps = len(train_dataset)*training_epochs
+    num_training_steps = len(train_dataset) * training_epochs
     num_warmup_steps = len(train_dataset)
-    # optimizer = torch.optim.AdamW(model.parameters(), lr=lr) # , eps=1e-06, weight_decay=0.01
     optimizer = torch.optim.AdamW(model.train_params, lr=lr) # , eps=1e-06, weight_decay=0.01
     scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=num_warmup_steps, num_training_steps=num_training_steps)
     
@@ -126,27 +126,32 @@ def main():
     best_dev_fscore, best_test_fscore = 0, 0
     best_dev_fscore_macro, best_dev_fscore_micro, best_test_fscore_macro, best_test_fscore_micro = 0, 0, 0, 0    
     best_epoch = 0
+    
+    scaler = GradScaler(enabled=use_amp)
+    
     for epoch in tqdm(range(training_epochs)):
         model.train() 
+        
         for i_batch, data in enumerate(train_dataloader):
+            optimizer.zero_grad()
+            
             if i_batch > train_sample_num:
                 print(i_batch, train_sample_num)
                 break
             
-            """Prediction"""
             batch_input_tokens, batch_labels, batch_speaker_tokens = data
             batch_input_tokens, batch_labels = batch_input_tokens.cuda(), batch_labels.cuda()
-            
-            pred_logits = model(batch_input_tokens, batch_speaker_tokens)
 
-            """Loss calculation & training"""
-            loss_val = CELoss(pred_logits, batch_labels)
-            
-            loss_val.backward()
+            with torch.cuda.amp.autocast(enabled=use_amp):
+                pred_logits = model(batch_input_tokens, batch_speaker_tokens)
+                loss_val = CELoss(pred_logits, batch_labels)
+
+            scaler.scale(loss_val).backward()
+            scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)  # Gradient clipping is not in AdamW anymore (so you can use amp without issue)
-            optimizer.step()
+            scaler.step(optimizer)
+            scaler.update()
             scheduler.step()
-            optimizer.zero_grad()
             
         """Dev & Test evaluation"""
         model.eval()
@@ -168,6 +173,7 @@ def main():
                 
                 best_epoch = epoch
                 _SaveModel(model, save_path)
+
         else: # weight
             dev_acc, dev_pred_list, dev_label_list = _CalACC(model, dev_dataloader)
             dev_pre, dev_rec, dev_fbeta, _ = precision_recall_fscore_support(dev_label_list, dev_pred_list, average='weighted')
