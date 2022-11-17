@@ -143,10 +143,10 @@ def main():
     
     scaler = GradScaler(enabled=use_amp)
     
-    for epoch in tqdm(range(training_epochs), desc='training loops'):
+    for epoch in tqdm(range(training_epochs), desc='training loops', leave=True):
         model.train() 
         
-        for i_batch, data in tqdm(enumerate(train_dataloader), desc='batch'):
+        for i_batch, data in tqdm(enumerate(train_dataloader), desc='batch', leave=True):
             optimizer.zero_grad()
             
             if i_batch > train_sample_num:
