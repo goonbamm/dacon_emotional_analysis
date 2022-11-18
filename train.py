@@ -293,7 +293,7 @@ if __name__ == '__main__':
     parser.add_argument( "--earlystop", type=int, help = "early stop", default=3)
     parser.add_argument( "--norm", type=int, help = "max_grad_norm", default=10)
     parser.add_argument( "--lr", type=float, help = "learning rate", default=1e-6)
-    parser.add_argument( "--amp", type=int, action='store_true', help = "Auto Mixed Precision")
+    parser.add_argument( "--amp", action='store_true', help = "Auto Mixed Precision")
     parser.add_argument( "--sample", type=float, help = "sampling training dataset", default=1.0) # 
 
     parser.add_argument( "--dataset", help = 'MELD or EMORY or iemocap or dailydialog or DACON', default='MELD')
