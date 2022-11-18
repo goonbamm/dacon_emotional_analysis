@@ -2,6 +2,7 @@
 import os
 import pdb
 import torch
+import wandb
 import random
 import logging
 import argparse
@@ -28,7 +29,7 @@ def CELoss(pred_outs, labels):
     return loss_val
 
     
-def main():    
+def main():
     # hyperparameter setting
     batch_size = args.batch
     dataset = args.dataset
@@ -149,6 +150,9 @@ def main():
     
     scaler = GradScaler(enabled=use_amp)
     
+    # wandb setting
+    wandb.init(project='dacon_sentiment_analysis')
+    
     for epoch in tqdm(range(training_epochs), desc='training loops', leave=True):
         model.train() 
         
@@ -219,14 +223,17 @@ def main():
         
         if dataset == 'dailydialog': # micro & macro
             logger.info('Development ## accuracy: {}, macro-fscore: {}, micro-fscore: {}'.format(dev_acc, dev_fbeta_macro, dev_fbeta_micro))
-            logger.info('') 
+            logger.info('')
+            wandb.log({'valid_f1_score': dev_fbeta_macro})
             
         else:
             logger.info('Development ## accuracy: {}, precision: {}, recall: {}, fscore: {}'.format(dev_acc, dev_pre, dev_rec, dev_fbeta))
             logger.info('')
+            wandb.log({'valid_f1_score': dev_fbeta})
         
         if patience == early_stop:
             logger.info('#### Early Stop ####')
+            logger.info('')
             break
         
     if dataset == 'dailydialog': # micro & macro
