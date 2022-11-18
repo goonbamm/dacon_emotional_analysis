@@ -8,14 +8,14 @@ import argparse
 
 import torch.nn as nn
 
-from tqdm.auto import tqdm
+from tqdm.notebook import tqdm
 from model import ERC_model
 from torch.cuda.amp import autocast, GradScaler
 from torch.utils.data import Dataset, DataLoader
 from sklearn.metrics import precision_recall_fscore_support
 from utils import make_batch_roberta, make_batch_bert, make_batch_gpt
 from transformers import RobertaTokenizer, get_linear_schedule_with_warmup
-from ERC_dataset import MELD_loader, Emory_loader, IEMOCAP_loader, DD_loader
+from ERC_dataset import DACON_loader, MELD_loader, Emory_loader, IEMOCAP_loader, DD_loader
 
 
 def CELoss(pred_outs, labels):
@@ -60,6 +60,10 @@ def main():
     elif dataset == 'dailydialog':
         data_path = './dataset/dailydialog/'
         DATA_loader = DD_loader    
+
+    elif dataset == 'DACON':
+        data_path = './dataset/DACON/'
+        DATA_loader = DACON_loader    
     
     # batch setting
     if 'roberta' in model_type:
@@ -205,10 +209,11 @@ def main():
         logger.info('Epoch: {}'.format(epoch))
         
         if dataset == 'dailydialog': # micro & macro
-            logger.info('Devleopment ## accuracy: {}, macro-fscore: {}, micro-fscore: {}'.format(dev_acc, dev_fbeta_macro, dev_fbeta_micro))
+            logger.info('Development ## accuracy: {}, macro-fscore: {}, micro-fscore: {}'.format(dev_acc, dev_fbeta_macro, dev_fbeta_micro))
             logger.info('') 
+            
         else:
-            logger.info('Devleopment ## accuracy: {}, precision: {}, recall: {}, fscore: {}'.format(dev_acc, dev_pre, dev_rec, dev_fbeta))
+            logger.info('Development ## accuracy: {}, precision: {}, recall: {}, fscore: {}'.format(dev_acc, dev_pre, dev_rec, dev_fbeta))
             logger.info('')
         
     if dataset == 'dailydialog': # micro & macro
