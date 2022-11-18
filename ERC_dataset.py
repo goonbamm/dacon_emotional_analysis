@@ -311,10 +311,13 @@ class DACON_loader(Dataset):
             
         self.emoList = sorted(self.emoSet)
         self.sentiList = sorted(self.sentiSet)
+
         if dataclass == 'emotion':
             self.labelList = self.emoList
+
         else:
             self.labelList = self.sentiList        
+
         self.speakerNum.append(len(temp_speakerList))
         
     def __len__(self):

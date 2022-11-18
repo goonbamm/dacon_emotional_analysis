@@ -124,6 +124,7 @@ def main():
     """Model Loading"""
     if 'gpt2' in model_type:
         last = True
+
     else:
         last = False
         
@@ -135,11 +136,11 @@ def main():
     
     """Training Setting"""        
     training_epochs = args.epoch
-    save_term = int(training_epochs/5)
     max_grad_norm = args.norm
     lr = args.lr
     num_training_steps = len(train_dataset) * training_epochs
     num_warmup_steps = len(train_dataset)
+
     optimizer = torch.optim.AdamW(model.train_params, lr=lr) # , eps=1e-06, weight_decay=0.01
     scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=num_warmup_steps, num_training_steps=num_training_steps)
     
@@ -154,10 +155,10 @@ def main():
     # wandb setting
     wandb.init(project='dacon_sentiment_analysis')
     
-    for epoch in tqdm(range(training_epochs), desc='training loops', leave=True):
+    for epoch in tqdm(range(training_epochs), desc='training loops'):
         model.train() 
         
-        for i_batch, data in tqdm(enumerate(train_dataloader), desc='batch', leave=True):
+        for i_batch, data in enumerate(train_dataloader):
             optimizer.zero_grad()
             
             if i_batch > train_sample_num:
@@ -288,14 +289,14 @@ if __name__ == '__main__':
     parser  = argparse.ArgumentParser(description = "Emotion Classifier" )
     parser.add_argument( "--batch", type=int, help = "batch_size", default=1)
     
-    parser.add_argument( "--epoch", type=int, help = 'training epohcs', default=10) # 12 for iemocap
+    parser.add_argument( "--epoch", type=int, help = 'training epohcs', default=100) # 12 for iemocap
     parser.add_argument( "--earlystop", type=int, help = "early stop", default=3)
-    parser.add_argument( "--norm", type=int, help = "max_grad_norm", default=10)
-    parser.add_argument( "--lr", type=float, help = "learning rate", default=1e-5)
-    # parser.add_argument( "--amp", type=int, help = "Auto Mixed Precision", default=True)
-    parser.add_argument( "--sample", type=float, help = "sampling trainign dataset", default=1.0) # 
+    parser.add_argument( "--norm", type=int, help = "max_grad_norm", default=5)
+    parser.add_argument( "--lr", type=float, help = "learning rate", default=1e-6)
+    parser.add_argument( "--amp", type=int, action='store_true', help = "Auto Mixed Precision")
+    parser.add_argument( "--sample", type=float, help = "sampling training dataset", default=1.0) # 
 
-    parser.add_argument( "--dataset", help = 'MELD or EMORY or iemocap or dailydialog or DACON', default='DACON')
+    parser.add_argument( "--dataset", help = 'MELD or EMORY or iemocap or dailydialog or DACON', default='MELD')
     
     parser.add_argument( "--pretrained", help = 'roberta-base/roberta-large or bert-large-uncased or gpt2 or gpt2-large or gpt2-medium', default = 'roberta-base')    
     parser.add_argument( "--initial", help = 'pretrained or scratch', default = 'pretrained')
