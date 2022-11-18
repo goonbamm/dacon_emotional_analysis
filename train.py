@@ -7,6 +7,7 @@ import random
 import logging
 import argparse
 
+import pandas as pd
 import torch.nn as nn
 
 from tqdm.notebook import tqdm
@@ -193,7 +194,9 @@ def main():
                 
                 test_acc, test_pred_list, test_label_list = _CalACC(model, test_dataloader)
                 test_pre_macro, test_rec_macro, test_fbeta_macro, _ = precision_recall_fscore_support(test_label_list, test_pred_list, average='macro')
-                test_pre_micro, test_rec_micro, test_fbeta_micro, _ = precision_recall_fscore_support(test_label_list, test_pred_list, labels=[0,1,2,3,5,6], average='micro') # neutral x                
+                test_pre_micro, test_rec_micro, test_fbeta_micro, _ = precision_recall_fscore_support(test_label_list, test_pred_list, labels=[0,1,2,3,5,6], average='micro') # neutral x
+                
+                
                 
                 best_epoch = epoch
                 _SaveModel(model, save_path)
@@ -211,7 +214,10 @@ def main():
                 best_dev_fscore = dev_fbeta
                 
                 test_acc, test_pred_list, test_label_list = _CalACC(model, test_dataloader)
-                test_pre, test_rec, test_fbeta, _ = precision_recall_fscore_support(test_label_list, test_pred_list, average='weighted')                
+                test_pre, test_rec, test_fbeta, _ = precision_recall_fscore_support(test_label_list, test_pred_list, average='weighted')
+                
+                test_csv = pd.DataFrame(test_pred_list, columns=['Target'])
+                test_csv.to_csv('./best_test.csv', index=False)
                 
                 best_epoch = epoch
                 _SaveModel(model, save_path)
