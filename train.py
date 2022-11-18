@@ -40,7 +40,7 @@ def main():
     freeze = args.freeze
     initial = args.initial
     early_stop = args.earlystop
-    use_amp = True
+    use_amp = args.amp
     
     # dataset setting
     dataType = 'multi'
@@ -291,7 +291,7 @@ if __name__ == '__main__':
     
     parser.add_argument( "--epoch", type=int, help = 'training epohcs', default=100) # 12 for iemocap
     parser.add_argument( "--earlystop", type=int, help = "early stop", default=3)
-    parser.add_argument( "--norm", type=int, help = "max_grad_norm", default=5)
+    parser.add_argument( "--norm", type=int, help = "max_grad_norm", default=10)
     parser.add_argument( "--lr", type=float, help = "learning rate", default=1e-6)
     parser.add_argument( "--amp", type=int, action='store_true', help = "Auto Mixed Precision")
     parser.add_argument( "--sample", type=float, help = "sampling training dataset", default=1.0) # 
