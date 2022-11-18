@@ -37,6 +37,7 @@ def main():
     model_type = args.pretrained
     freeze = args.freeze
     initial = args.initial
+    early_stop = args.earlystop
     use_amp = True
     
     # dataset setting
@@ -144,6 +145,7 @@ def main():
     best_dev_fscore, best_test_fscore = 0, 0
     best_dev_fscore_macro, best_dev_fscore_micro, best_test_fscore_macro, best_test_fscore_micro = 0, 0, 0, 0    
     best_epoch = 0
+    patience = 0 # for early stop
     
     scaler = GradScaler(enabled=use_amp)
     
@@ -191,6 +193,10 @@ def main():
                 
                 best_epoch = epoch
                 _SaveModel(model, save_path)
+                patience = 0
+                
+            else:
+                patience += 1                    
 
         else: # weight
             dev_acc, dev_pred_list, dev_label_list = _CalACC(model, dev_dataloader)
@@ -205,6 +211,9 @@ def main():
                 
                 best_epoch = epoch
                 _SaveModel(model, save_path)
+            
+            else:
+                patience += 1
         
         logger.info('Epoch: {}'.format(epoch))
         
@@ -215,6 +224,10 @@ def main():
         else:
             logger.info('Development ## accuracy: {}, precision: {}, recall: {}, fscore: {}'.format(dev_acc, dev_pre, dev_rec, dev_fbeta))
             logger.info('')
+        
+        if patience == early_stop:
+            logger.info('#### Early Stop ####')
+            break
         
     if dataset == 'dailydialog': # micro & macro
         logger.info('Final Fscore ## test-accuracy: {}, test-macro: {}, test-micro: {}, test_epoch: {}'.format(test_acc, test_fbeta_macro, test_fbeta_micro, best_epoch))
@@ -260,16 +273,18 @@ if __name__ == '__main__':
     
     """Parameters"""
     parser  = argparse.ArgumentParser(description = "Emotion Classifier" )
-    parser.add_argument( "--batch", type=int, help = "batch_size", default = 1)
+    parser.add_argument( "--batch", type=int, help = "batch_size", default=1)
     
-    parser.add_argument( "--epoch", type=int, help = 'training epohcs', default = 10) # 12 for iemocap
-    parser.add_argument( "--norm", type=int, help = "max_grad_norm", default = 10)
-    parser.add_argument( "--lr", type=float, help = "learning rate", default = 1e-6) # 1e-5
-    parser.add_argument( "--sample", type=float, help = "sampling trainign dataset", default = 1.0) # 
+    parser.add_argument( "--epoch", type=int, help = 'training epohcs', default=10) # 12 for iemocap
+    parser.add_argument( "--earlystop", type=int, help = "early stop", default=3)
+    parser.add_argument( "--norm", type=int, help = "max_grad_norm", default=10)
+    parser.add_argument( "--lr", type=float, help = "learning rate", default=1e-5)
+    # parser.add_argument( "--amp", type=int, help = "Auto Mixed Precision", default=True)
+    parser.add_argument( "--sample", type=float, help = "sampling trainign dataset", default=1.0) # 
 
-    parser.add_argument( "--dataset", help = 'MELD or EMORY or iemocap or dailydialog', default = 'MELD')
+    parser.add_argument( "--dataset", help = 'MELD or EMORY or iemocap or dailydialog or DACON', default='DACON')
     
-    parser.add_argument( "--pretrained", help = 'roberta-large or bert-large-uncased or gpt2 or gpt2-large or gpt2-medium', default = 'roberta-large')    
+    parser.add_argument( "--pretrained", help = 'roberta-base/roberta-large or bert-large-uncased or gpt2 or gpt2-large or gpt2-medium', default = 'roberta-base')    
     parser.add_argument( "--initial", help = 'pretrained or scratch', default = 'pretrained')
     parser.add_argument('-dya', '--dyadic', action='store_true', help='dyadic conversation')
     parser.add_argument('-fr', '--freeze', action='store_true', help='freezing PM')
