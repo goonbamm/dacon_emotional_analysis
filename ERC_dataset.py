@@ -1,6 +1,8 @@
-from torch.utils.data import Dataset, DataLoader
-from torch.nn.utils.rnn import pack_sequence
 import random
+
+from torch.nn.utils.rnn import pack_sequence
+from torch.utils.data import Dataset, DataLoader
+
     
 class MELD_loader(Dataset):
     def __init__(self, txt_file, dataclass):
@@ -52,15 +54,15 @@ class MELD_loader(Dataset):
 
     def __getitem__(self, idx):
         return self.dialogs[idx], self.labelList, self.sentidict
-    
-    
+
+
 class Emory_loader(Dataset):
     def __init__(self, txt_file, dataclass):
         self.dialogs = []
-        
         f = open(txt_file, 'r')
         dataset = f.readlines()
         f.close()
+        
         """sentiment"""
         # 'Joyful', 'Mad', 'Neutral', 'Peaceful', 'Powerful', 'Sad', 'Scared'
         pos = ['Joyful', 'Peaceful', 'Powerful']
@@ -74,6 +76,7 @@ class Emory_loader(Dataset):
         self.speakerNum = []
         self.emoSet = set()
         self.sentiSet = set()
+
         for i, data in enumerate(dataset):
             if data == '\n' and len(self.dialogs) > 0:
                 self.speakerNum.append(len(temp_speakerList))
@@ -81,20 +84,25 @@ class Emory_loader(Dataset):
                 context = []
                 context_speaker = []
                 continue
+
             speaker, utt, emo = data.strip().split('\t')
             context.append(utt)
             
             if emo in pos:
                 senti = "positive"
+
             elif emo in neg:
                 senti = "negative"
+
             elif emo in neu:
                 senti = "neutral"
+
             else:
                 print('ERROR emotion&sentiment')
                 
             if speaker not in temp_speakerList:
                 temp_speakerList.append(speaker)
+
             speakerCLS = temp_speakerList.index(speaker)
             context_speaker.append(speakerCLS)
             
@@ -115,7 +123,7 @@ class Emory_loader(Dataset):
 
     def __getitem__(self, idx):
         return self.dialogs[idx], self.labelList, self.sentidict
-    
+
     
 class IEMOCAP_loader(Dataset):
     def __init__(self, txt_file, dataclass):
@@ -181,6 +189,7 @@ class IEMOCAP_loader(Dataset):
     def __getitem__(self, idx):
         return self.dialogs[idx], self.labelList, self.sentidict
     
+    
 class DD_loader(Dataset):
     def __init__(self, txt_file, dataclass):
         self.dialogs = []
@@ -231,6 +240,76 @@ class DD_loader(Dataset):
             self.emoSet.add(emodict[emo])
         
         self.emoList = sorted(self.emoSet)   
+        self.sentiList = sorted(self.sentiSet)
+        if dataclass == 'emotion':
+            self.labelList = self.emoList
+        else:
+            self.labelList = self.sentiList        
+        self.speakerNum.append(len(temp_speakerList))
+        
+    def __len__(self):
+        return len(self.dialogs)
+
+    def __getitem__(self, idx):
+        return self.dialogs[idx], self.labelList, self.sentidict
+    
+
+class DACON_loader(Dataset):
+    def __init__(self, txt_file, dataclass):
+        self.dialogs = []
+        f = open(txt_file, 'r')
+        dataset = f.readlines()
+        f.close()
+        
+        """sentiment"""
+        # 'neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger'
+        pos = ['joy']
+        neg = ['fear', 'sadness', 'disgust', 'anger']
+        neu = ['neutral', 'surprise'] # 'surprise'는 MELD 기준에 따라 분류했습니다.
+        emodict = {'joy': "joy", 'fear': "fear", 'sadness': "sad", 'disgust': "disgust", 'anger': "anger", 'neutral': "neutral", 'surprise': 'surprise'}
+        
+        self.sentidict = {'positive': pos, 'negative': neg, 'neutral': neu}
+        temp_speakerList = []
+        context = []
+        context_speaker = []        
+        self.speakerNum = []
+        self.emoSet = set()
+        self.sentiSet = set()
+
+        for i, data in enumerate(dataset):
+            if data == '\n' and len(self.dialogs) > 0:
+                self.speakerNum.append(len(temp_speakerList))
+                temp_speakerList = []
+                context = []
+                context_speaker = []
+                continue
+
+            speaker, utt, emo = data.strip().split('\t')
+            context.append(utt)
+            
+            if emo in pos:
+                senti = "positive"
+
+            elif emo in neg:
+                senti = "negative"
+
+            elif emo in neu:
+                senti = "neutral"
+
+            else:
+                print('ERROR emotion&sentiment')
+                
+            if speaker not in temp_speakerList:
+                temp_speakerList.append(speaker)
+
+            speakerCLS = temp_speakerList.index(speaker)
+            context_speaker.append(speakerCLS)
+            
+            self.dialogs.append([context_speaker[:], context[:], emodict[emo], senti])
+            self.emoSet.add(emodict[emo])
+            self.sentiSet.add(senti)
+            
+        self.emoList = sorted(self.emoSet)
         self.sentiList = sorted(self.sentiSet)
         if dataclass == 'emotion':
             self.labelList = self.emoList
