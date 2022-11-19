@@ -26,7 +26,7 @@ class ERC_model(nn.Module):
         """Model Setting"""
         model_path = model_type
         
-        if 'roberta' in model_type:
+        if 'berta' in model_type:
             self.context_model = RobertaModel.from_pretrained(model_path)
                     
             if initial == 'scratch':

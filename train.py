@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import torch.nn as nn
 
-from tqdm.notebook import tqdm
+from tqdm.auto import tqdm
 from model import ERC_model
 from torch.cuda.amp import autocast, GradScaler
 from torch.utils.data import Dataset, DataLoader
@@ -91,7 +91,7 @@ def main():
         DATA_loader = DACON_loader    
     
     # batch setting
-    if 'roberta' in model_type:
+    if 'berta' in model_type:
         make_batch = make_batch_roberta
         
     elif model_type == 'bert-large-uncased':
@@ -285,6 +285,11 @@ def main():
         if dataset == 'dailydialog': # micro & macro
             logger.info('Development ## accuracy: {}, macro-fscore: {}, micro-fscore: {}'.format(dev_acc, dev_fbeta_macro, dev_fbeta_micro))
             logger.info('')
+            
+        elif dataset == 'DACON':
+            logger.info('Development ## accuracy: {}, macro-fscore: {}'.format(dev_acc, dev_fbeta_macro))
+            logger.info('')
+            wandb.log({'train_loss': train_loss, 'valid_loss': dev_loss, 'valid_f1_score': dev_fbeta})            
             
         else:
             logger.info('Development ## accuracy: {}, precision: {}, recall: {}, fscore: {}'.format(dev_acc, dev_pre, dev_rec, dev_fbeta))
