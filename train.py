@@ -129,6 +129,8 @@ def main():
         last = False
         
     print('DataClass: ', dataclass, '!!!') # emotion
+    print(f'LabelList: {train_dataset.labelList}')
+    
     clsNum = len(train_dataset.labelList)
     model = ERC_model(model_type, clsNum, last, freeze, initial)
     model = model.cuda()    
@@ -181,6 +183,7 @@ def main():
             
         """Dev & Test evaluation"""
         model.eval()
+
         if dataset == 'dailydialog': # micro & macro
             dev_acc, dev_pred_list, dev_label_list = _CalACC(model, dev_dataloader)
             dev_pre_macro, dev_rec_macro, dev_fbeta_macro, _ = precision_recall_fscore_support(dev_label_list, dev_pred_list, average='macro')
@@ -197,14 +200,38 @@ def main():
                 test_pre_macro, test_rec_macro, test_fbeta_macro, _ = precision_recall_fscore_support(test_label_list, test_pred_list, average='macro')
                 test_pre_micro, test_rec_micro, test_fbeta_micro, _ = precision_recall_fscore_support(test_label_list, test_pred_list, labels=[0,1,2,3,5,6], average='micro') # neutral x
                 
-                
-                
                 best_epoch = epoch
                 _SaveModel(model, save_path)
+                
                 patience = 0
                 
             else:
-                patience += 1                    
+                patience += 1
+
+        elif dataset == 'DACON': # macro
+            dev_acc, dev_pred_list, dev_label_list = _CalACC(model, dev_dataloader)
+            dev_pre_macro, dev_rec_macro, dev_fbeta_macro, _ = precision_recall_fscore_support(dev_label_list, dev_pred_list, average='macro')
+            
+            dev_fscore = dev_fbeta_macro
+
+            """Best Score & Model Save"""
+            if dev_fscore > best_dev_fscore_macro:
+                best_dev_fscore_macro = dev_fbeta_macro
+
+                test_acc, test_pred_list, test_label_list = _CalACC(model, test_dataloader)
+                test_pre_macro, test_rec_macro, test_fbeta_macro, _ = precision_recall_fscore_support(test_label_list, test_pred_list, average='macro')
+
+                test_pred_list = [train_dataset.labelList[tp] for tp in test_pred_list]
+                test_csv = pd.DataFrame(test_pred_list, columns=['Target'])
+                test_csv.to_csv(f'./test_epoch_{epoch}.csv', index=False)
+
+                best_epoch = epoch
+                _SaveModel(model, save_path)
+
+                patience = 0
+                
+            else:
+                patience += 1
 
         else: # weight
             dev_acc, dev_pred_list, dev_label_list = _CalACC(model, dev_dataloader)
@@ -222,6 +249,8 @@ def main():
                 
                 best_epoch = epoch
                 _SaveModel(model, save_path)
+
+                patience = 0
             
             else:
                 patience += 1
@@ -245,8 +274,8 @@ def main():
         
     if dataset == 'dailydialog': # micro & macro
         logger.info('Final Fscore ## test-accuracy: {}, test-macro: {}, test-micro: {}, test_epoch: {}'.format(test_acc, test_fbeta_macro, test_fbeta_micro, best_epoch))
-        
-    else:
+    
+    elif dataset != 'DACON':
         logger.info('Final Fscore ## test-accuracy: {}, test-fscore: {}, test_epoch: {}'.format(test_acc, test_fbeta, best_epoch))         
    
     
@@ -275,7 +304,8 @@ def _CalACC(model, dataloader):
                 correct += 1
         acc = correct/len(dataloader)
     return acc, pred_list, label_list
-        
+
+
 def _SaveModel(model, path):
     if not os.path.exists(path):
         os.makedirs(path)
