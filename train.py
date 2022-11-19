@@ -33,15 +33,36 @@ def CELoss(pred_outs, labels):
     
 def main():
     # hyperparameter setting
-    batch_size = args.batch
     dataset = args.dataset
     dataclass = args.cls
+    batch_size = args.batch
     sample = args.sample
     model_type = args.pretrained
     freeze = args.freeze
     initial = args.initial
     early_stop = args.earlystop
     use_amp = args.amp
+    training_epochs = args.epoch
+    max_grad_norm = args.norm
+    lr = args.lr
+    
+    CONFIG = {
+        # dataset
+        'dataset': dataset,
+        'dataclass': dataclass,
+        'batch_size': batch_size,
+        'sample': sample,
+        # model
+        'model_type': model_type,
+        'freeze': freeze,
+        'initial': initial,
+        # training
+        'early_stop': early_stop,
+        'use_amp': use_amp,
+        'epochs': training_epochs,
+        'max_grad_norm': max_grad_norm,
+        'learing_rate': lr,
+    }
     
     # dataset setting
     dataType = 'multi'
@@ -138,10 +159,7 @@ def main():
     model = model.cuda()    
     model.train() 
     
-    """Training Setting"""        
-    training_epochs = args.epoch
-    max_grad_norm = args.norm
-    lr = args.lr
+    """Training Setting"""
     num_training_steps = len(train_dataset) * training_epochs
     num_warmup_steps = len(train_dataset)
 
@@ -157,7 +175,7 @@ def main():
     scaler = GradScaler(enabled=use_amp)
     
     # wandb setting
-    wandb.init(project='dacon_sentiment_analysis')
+    wandb.init(project='dacon_sentiment_analysis', config=CONFIG)
     
     for epoch in tqdm(range(training_epochs), desc='training loops'):
         model.train() 
