@@ -7,14 +7,29 @@
 
 <br>
 
-- 데이터 분석하기
-    + train / valid 비율
-    + 대화 개수 / 담화 개수 측정
+- CoMPM 을 Dacon Dataset 으로 Fine Tuning 해보기
+
+    + 현재 데이터 형식은 EmoryNLP 로 변환했음.
+
+    + Large 에서 돌렸는데, AMP 꺼야 성능이 잘 나옴. 제대로 짜서 내일 돌려볼 예정
 
 <br>
 
-- CoMPM 을 Dacon Dataset 으로 Fine Tuning 해보기
-    + 현재 데이터 형식은 EmoryNLP 로 변환했음.
+- EmoBERTa-Large 성능 측정 중
+
+    + 원래 Large 가 GPU 가 터졌는데, 오늘부터 Colab 에서 돌아가서 돌려보고 있음.
+
+<br>
+
+- FocalLoss 적용해보기
+
+<br>
+
+- Graph 구조를 활용해볼 순 없을까?
+
+<br>
+
+- Label Smoothing?
 
 <br>
 
@@ -31,6 +46,12 @@
 
 - AMP 적용
 
+- 데이터 분석하기
+
+    + train / valid 비율
+
+    + 대화 개수 / 담화 개수 측정
+
 <br>
 
 
@@ -43,10 +64,6 @@
         * 69.46 에서 58.04 로 떨어짐.
 
         * 확실히 Large 모델을 사용할 수 있으면 좋으나, 14GB 이상 GPU 가 필요하다.
-
-        * checkpoint 가 14GB 라서 일단 받아둠.
-
-        * Base 로 시도 다 해보고, 마지막에 Large 를 써봐야겠다.
 
 <br>
 
