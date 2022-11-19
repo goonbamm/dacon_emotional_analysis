@@ -7,6 +7,7 @@ import random
 import logging
 import argparse
 
+import numpy as np
 import pandas as pd
 import torch.nn as nn
 
@@ -129,7 +130,8 @@ def main():
         last = False
         
     print('DataClass: ', dataclass, '!!!') # emotion
-    print(f'LabelList: {train_dataset.labelList}')
+    print(f'Train LabelList: {train_dataset.labelList}')
+    print(f'Dev LabelList: {dev_dataset.labelList}')
     
     clsNum = len(train_dataset.labelList)
     model = ERC_model(model_type, clsNum, last, freeze, initial)
@@ -159,6 +161,7 @@ def main():
     
     for epoch in tqdm(range(training_epochs), desc='training loops'):
         model.train() 
+        train_loss = []
         
         for i_batch, data in enumerate(train_dataloader):
             optimizer.zero_grad()
@@ -172,20 +175,24 @@ def main():
 
             with torch.cuda.amp.autocast(enabled=use_amp):
                 pred_logits = model(batch_input_tokens, batch_speaker_tokens)
-                loss_val = CELoss(pred_logits, batch_labels)
+                train_loss = CELoss(pred_logits, batch_labels)
 
-            scaler.scale(loss_val).backward()
+            scaler.scale(train_loss).backward()
             scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)  # Gradient clipping is not in AdamW anymore (so you can use amp without issue)
             scaler.step(optimizer)
             scaler.update()
             scheduler.step()
             
+            train_loss.append(train_loss.item())
+        
+        train_loss = np.mean(train_loss)
+        
         """Dev & Test evaluation"""
         model.eval()
 
         if dataset == 'dailydialog': # micro & macro
-            dev_acc, dev_pred_list, dev_label_list = _CalACC(model, dev_dataloader)
+            dev_acc, dev_pred_list, dev_label_list, dev_loss = _CalACC(model, dev_dataloader)
             dev_pre_macro, dev_rec_macro, dev_fbeta_macro, _ = precision_recall_fscore_support(dev_label_list, dev_pred_list, average='macro')
             dev_pre_micro, dev_rec_micro, dev_fbeta_micro, _ = precision_recall_fscore_support(dev_label_list, dev_pred_list, labels=[0,1,2,3,5,6], average='micro') # neutral x
             
@@ -196,7 +203,7 @@ def main():
                 best_dev_fscore_macro = dev_fbeta_macro                
                 best_dev_fscore_micro = dev_fbeta_micro
                 
-                test_acc, test_pred_list, test_label_list = _CalACC(model, test_dataloader)
+                test_acc, test_pred_list, test_label_list, test_loss = _CalACC(model, test_dataloader)
                 test_pre_macro, test_rec_macro, test_fbeta_macro, _ = precision_recall_fscore_support(test_label_list, test_pred_list, average='macro')
                 test_pre_micro, test_rec_micro, test_fbeta_micro, _ = precision_recall_fscore_support(test_label_list, test_pred_list, labels=[0,1,2,3,5,6], average='micro') # neutral x
                 
@@ -209,7 +216,7 @@ def main():
                 patience += 1
 
         elif dataset == 'DACON': # macro
-            dev_acc, dev_pred_list, dev_label_list = _CalACC(model, dev_dataloader)
+            dev_acc, dev_pred_list, dev_label_list, dev_loss = _CalACC(model, dev_dataloader)
             dev_pre_macro, dev_rec_macro, dev_fbeta_macro, _ = precision_recall_fscore_support(dev_label_list, dev_pred_list, average='macro')
             
             dev_fscore = dev_fbeta_macro
@@ -218,7 +225,7 @@ def main():
             if dev_fscore > best_dev_fscore_macro:
                 best_dev_fscore_macro = dev_fbeta_macro
 
-                test_acc, test_pred_list, test_label_list = _CalACC(model, test_dataloader)
+                test_acc, test_pred_list, test_label_list, test_loss = _CalACC(model, test_dataloader)
                 test_pre_macro, test_rec_macro, test_fbeta_macro, _ = precision_recall_fscore_support(test_label_list, test_pred_list, average='macro')
 
                 test_pred_list = [train_dataset.labelList[tp] for tp in test_pred_list]
@@ -234,14 +241,14 @@ def main():
                 patience += 1
 
         else: # weight
-            dev_acc, dev_pred_list, dev_label_list = _CalACC(model, dev_dataloader)
+            dev_acc, dev_pred_list, dev_label_list, dev_loss = _CalACC(model, dev_dataloader)
             dev_pre, dev_rec, dev_fbeta, _ = precision_recall_fscore_support(dev_label_list, dev_pred_list, average='weighted')
 
             """Best Score & Model Save"""
             if dev_fbeta > best_dev_fscore:
                 best_dev_fscore = dev_fbeta
                 
-                test_acc, test_pred_list, test_label_list = _CalACC(model, test_dataloader)
+                test_acc, test_pred_list, test_label_list, test_loss = _CalACC(model, test_dataloader)
                 test_pre, test_rec, test_fbeta, _ = precision_recall_fscore_support(test_label_list, test_pred_list, average='weighted')
                 
                 test_csv = pd.DataFrame(test_pred_list, columns=['Target'])
@@ -260,12 +267,11 @@ def main():
         if dataset == 'dailydialog': # micro & macro
             logger.info('Development ## accuracy: {}, macro-fscore: {}, micro-fscore: {}'.format(dev_acc, dev_fbeta_macro, dev_fbeta_micro))
             logger.info('')
-            wandb.log({'valid_f1_score': dev_fbeta_macro})
             
         else:
             logger.info('Development ## accuracy: {}, precision: {}, recall: {}, fscore: {}'.format(dev_acc, dev_pre, dev_rec, dev_fbeta))
             logger.info('')
-            wandb.log({'valid_f1_score': dev_fbeta})
+            wandb.log({'train_loss': train_loss, 'valid_loss': dev_loss, 'valid_f1_score': dev_fbeta})
         
         if patience == early_stop:
             logger.info('#### Early Stop ####')
@@ -284,6 +290,7 @@ def _CalACC(model, dataloader):
     correct = 0
     label_list = []
     pred_list = []
+    loss = []
     
     # label arragne
     with torch.no_grad():
@@ -293,6 +300,7 @@ def _CalACC(model, dataloader):
             batch_input_tokens, batch_labels = batch_input_tokens.cuda(), batch_labels.cuda()
             
             pred_logits = model(batch_input_tokens, batch_speaker_tokens) # (1, clsNum)
+            batch_loss = CELoss(pred_logits, batch_labels)
             
             """Calculation"""    
             pred_label = pred_logits.argmax(1).item()
@@ -300,10 +308,15 @@ def _CalACC(model, dataloader):
             
             pred_list.append(pred_label)
             label_list.append(true_label)
+            
             if pred_label == true_label:
                 correct += 1
+            
+            loss.append(batch_loss.item())
+            
         acc = correct/len(dataloader)
-    return acc, pred_list, label_list
+        
+    return acc, pred_list, label_list, np.mean(loss)
 
 
 def _SaveModel(model, path):
