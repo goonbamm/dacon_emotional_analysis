@@ -287,9 +287,9 @@ def main():
             logger.info('')
             
         elif dataset == 'DACON':
-            logger.info('Development ## accuracy: {}, macro-fscore: {}'.format(dev_acc, dev_fbeta_macro))
+            logger.info('Development ## train_loss: {}, valid_loss: {}, macro-fscore: {}'.format(train_loss, dev_loss, dev_fbeta_macro))
             logger.info('')
-            wandb.log({'train_loss': train_loss, 'valid_loss': dev_loss, 'valid_f1_score': dev_fbeta})            
+            wandb.log({'train_loss': train_loss, 'valid_loss': dev_loss, 'valid_f1_score': dev_fbeta_macro})            
             
         else:
             logger.info('Development ## accuracy: {}, precision: {}, recall: {}, fscore: {}'.format(dev_acc, dev_pre, dev_rec, dev_fbeta))
