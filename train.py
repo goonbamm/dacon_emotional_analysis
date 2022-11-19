@@ -193,16 +193,16 @@ def main():
 
             with torch.cuda.amp.autocast(enabled=use_amp):
                 pred_logits = model(batch_input_tokens, batch_speaker_tokens)
-                train_loss = CELoss(pred_logits, batch_labels)
+                batch_loss = CELoss(pred_logits, batch_labels)
 
-            scaler.scale(train_loss).backward()
+            scaler.scale(batch_loss).backward()
             scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)  # Gradient clipping is not in AdamW anymore (so you can use amp without issue)
             scaler.step(optimizer)
             scaler.update()
             scheduler.step()
             
-            train_loss.append(train_loss.item())
+            train_loss.append(batch_loss.item())
         
         train_loss = np.mean(train_loss)
         
