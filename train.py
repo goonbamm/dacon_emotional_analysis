@@ -164,7 +164,9 @@ def main():
     num_warmup_steps = len(train_dataset)
 
     optimizer = torch.optim.AdamW(model.train_params, lr=lr) # , eps=1e-06, weight_decay=0.01
-    scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=num_warmup_steps, num_training_steps=num_training_steps)
+
+    if not use_amp:
+        scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=num_warmup_steps, num_training_steps=num_training_steps)
     
     """Input & Label Setting"""
     best_dev_fscore, best_test_fscore = 0, 0
@@ -200,7 +202,9 @@ def main():
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_grad_norm)  # Gradient clipping is not in AdamW anymore (so you can use amp without issue)
             scaler.step(optimizer)
             scaler.update()
-            scheduler.step()
+
+            if not use_amp:
+                scheduler.step()
             
             train_loss.append(batch_loss.item())
         
