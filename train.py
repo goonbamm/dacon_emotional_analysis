@@ -56,6 +56,7 @@ def main():
     training_epochs = args.epoch
     max_grad_norm = args.norm
     lr = args.lr
+    use_wandb = args.wandb
     seed = 2022
     
     # seed setting
@@ -193,7 +194,8 @@ def main():
     scaler = GradScaler(enabled=use_amp)
     
     # wandb setting
-    wandb.init(project='dacon_sentiment_analysis', config=CONFIG)
+    if use_wandb:
+        wandb.init(project='dacon_sentiment_analysis', config=CONFIG)
     
     for epoch in tqdm(range(training_epochs), desc='training loops'):
         model.train() 
@@ -309,12 +311,12 @@ def main():
         elif dataset == 'DACON':
             logger.info('Development ## train_loss: {}, valid_loss: {}, macro-fscore: {}'.format(train_loss, dev_loss, dev_fbeta_macro))
             logger.info('')
-            wandb.log({'train_loss': train_loss, 'valid_loss': dev_loss, 'valid_f1_score': dev_fbeta_macro})            
+            if use_wandb:
+                wandb.log({'train_loss': train_loss, 'valid_loss': dev_loss, 'valid_f1_score': dev_fbeta_macro})            
             
         else:
             logger.info('Development ## accuracy: {}, precision: {}, recall: {}, fscore: {}'.format(dev_acc, dev_pre, dev_rec, dev_fbeta))
             logger.info('')
-            wandb.log({'train_loss': train_loss, 'valid_loss': dev_loss, 'valid_f1_score': dev_fbeta})
         
         if patience == early_stop:
             logger.info('#### Early Stop ####')
@@ -389,6 +391,7 @@ if __name__ == '__main__':
     parser.add_argument('-dya', '--dyadic', action='store_true', help='dyadic conversation')
     parser.add_argument('-fr', '--freeze', action='store_true', help='freezing PM')
     parser.add_argument( "--cls", help = 'emotion or sentiment', default = 'emotion')
+    parser.add_argument( "--wandb", action='store_true', help='use_wandb')
         
     args = parser.parse_args()
     
