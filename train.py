@@ -21,6 +21,16 @@ from transformers import RobertaTokenizer, get_linear_schedule_with_warmup
 from ERC_dataset import DACON_loader, MELD_loader, Emory_loader, IEMOCAP_loader, DD_loader
 
 
+def seed_everything(seed):
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = True
+
+
 def CELoss(pred_outs, labels):
     """
         pred_outs: [batch, clsNum]
@@ -31,13 +41,14 @@ def CELoss(pred_outs, labels):
     return loss_val
 
     
-def main():
+def main():    
     # hyperparameter setting
     dataset = args.dataset
     dataclass = args.cls
     batch_size = args.batch
     sample = args.sample
     model_type = args.pretrained
+    model_name = model_type.split('\\')[-1]
     freeze = args.freeze
     initial = args.initial
     early_stop = args.earlystop
@@ -45,6 +56,10 @@ def main():
     training_epochs = args.epoch
     max_grad_norm = args.norm
     lr = args.lr
+    seed = 2022
+    
+    # seed setting
+    seed_everything(seed=2022)
     
     CONFIG = {
         # dataset
@@ -62,6 +77,7 @@ def main():
         'epochs': training_epochs,
         'max_grad_norm': max_grad_norm,
         'learing_rate': lr,
+        'seed': seed,
     }
     
     # dataset setting
@@ -156,7 +172,7 @@ def main():
     
     clsNum = len(train_dataset.labelList)
     model = ERC_model(model_type, clsNum, last, freeze, initial)
-    model = model.cuda()    
+    model = model.cuda()
     model.train() 
     
     """Training Setting"""
@@ -252,7 +268,7 @@ def main():
 
                 test_pred_list = [train_dataset.labelList[tp] for tp in test_pred_list]
                 test_csv = pd.DataFrame(test_pred_list, columns=['Target'])
-                test_csv.to_csv(f'./test_epoch_{epoch}.csv', index=False)
+                test_csv.to_csv(f'./test_epoch_{epoch}_on_{model_name}.csv', index=False)
 
                 best_epoch = epoch
                 _SaveModel(model, save_path)
