@@ -31,7 +31,7 @@ def seed_everything(seed):
     torch.backends.cudnn.benchmark = True
 
 
-def CELoss(pred_outs, labels):
+def custom_loss(pred_outs, labels):
     """
         pred_outs: [batch, clsNum]
         labels: [batch]
@@ -39,6 +39,39 @@ def CELoss(pred_outs, labels):
     loss = nn.CrossEntropyLoss()
     loss_val = loss(pred_outs, labels)
     return loss_val
+
+
+def dataset_setting(dataset, dyadic):
+    data_type = 'multi'
+
+    if dataset == 'MELD':
+        if dyadic:
+            data_type = 'dyadic'
+
+        data_path = './dataset/MELD/'+data_type+'/'
+        DATA_loader = MELD_loader
+
+    elif dataset == 'EMORY':
+        data_path = './dataset/EMORY/'
+        DATA_loader = Emory_loader
+
+    elif dataset == 'iemocap':
+        data_path = './dataset/iemocap/'
+        DATA_loader = IEMOCAP_loader
+
+    elif dataset == 'dailydialog':
+        data_path = './dataset/dailydialog/'
+        DATA_loader = DD_loader    
+
+    elif dataset == 'DACON':
+        data_path = './dataset/DACON/'
+        DATA_loader = DACON_loader
+    
+    else:
+        print('DATASET NAME IS WRONG!!')
+        exit()
+        
+    return data_path, DATA_loader
 
     
 def main():
@@ -54,7 +87,7 @@ def main():
     batch_size = args.batch
     sample = args.sample
     model_type = args.pretrained
-    model_name = model_type.split('\\')[-1]
+    model_name = model_type.split('/')[-1]
     freeze = args.freeze
     initial = args.initial
     early_stop = args.earlystop
@@ -88,30 +121,7 @@ def main():
     }
     
     # dataset setting
-    dataType = 'multi'
-    if dataset == 'MELD':
-        if args.dyadic:
-            dataType = 'dyadic'
-        else:
-            dataType = 'multi'
-        data_path = './dataset/MELD/'+dataType+'/'
-        DATA_loader = MELD_loader
-
-    elif dataset == 'EMORY':
-        data_path = './dataset/EMORY/'
-        DATA_loader = Emory_loader
-
-    elif dataset == 'iemocap':
-        data_path = './dataset/iemocap/'
-        DATA_loader = IEMOCAP_loader
-
-    elif dataset == 'dailydialog':
-        data_path = './dataset/dailydialog/'
-        DATA_loader = DD_loader    
-
-    elif dataset == 'DACON':
-        data_path = './dataset/DACON/'
-        DATA_loader = DACON_loader    
+    data_path, DATA_loader = dataset_setting(dataset, args.dyadic)    
     
     # batch setting
     if 'berta' in model_type:
@@ -167,16 +177,7 @@ def main():
     logger.setLevel(level=logging.DEBUG)      
     
     """Model Loading"""
-    if 'gpt2' in model_type:
-        last = True
-
-    else:
-        last = False
-        
-    print('DataClass: ', dataclass, '!!!') # emotion
-    print(f'Train LabelList: {train_dataset.labelList}')
-    print(f'Dev LabelList: {dev_dataset.labelList}')
-    
+    last = True if 'gpt2' in model_type else False    
     clsNum = len(train_dataset.labelList)
     model = ERC_model(model_type, clsNum, last, freeze, initial)
     model = model.cuda()
@@ -219,7 +220,7 @@ def main():
 
             with torch.cuda.amp.autocast(enabled=use_amp):
                 pred_logits = model(batch_input_tokens, batch_speaker_tokens)
-                batch_loss = CELoss(pred_logits, batch_labels)
+                batch_loss = custom_loss(pred_logits, batch_labels)
 
             scaler.scale(batch_loss).backward()
             scaler.unscale_(optimizer)
@@ -351,7 +352,7 @@ def _CalACC(model, dataloader):
             batch_input_tokens, batch_labels = batch_input_tokens.cuda(), batch_labels.cuda()
             
             pred_logits = model(batch_input_tokens, batch_speaker_tokens) # (1, clsNum)
-            batch_loss = CELoss(pred_logits, batch_labels)
+            batch_loss = custom_loss(pred_logits, batch_labels)
             
             """Calculation"""    
             pred_label = pred_logits.argmax(1).item()
