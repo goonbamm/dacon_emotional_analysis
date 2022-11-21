@@ -179,11 +179,6 @@ def main():
     
     clsNum = len(train_dataset.labelList)
     model = ERC_model(model_type, clsNum, last, freeze, initial)
-
-    if device == 'cuda' and torch.cuda.device_count() > 1:
-        print('Multi GPU Model activate')
-        model = torch.nn.Parallel(model)
-
     model = model.cuda()
     model.train() 
     
