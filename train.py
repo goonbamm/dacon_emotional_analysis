@@ -41,7 +41,13 @@ def CELoss(pred_outs, labels):
     return loss_val
 
     
-def main():    
+def main():
+    # device setting
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print('Device:', device)
+    print('Current cuda device:', torch.cuda.current_device())
+    print('Count of using GPUs:', torch.cuda.device_count())
+    
     # hyperparameter setting
     dataset = args.dataset
     dataclass = args.cls
@@ -173,6 +179,11 @@ def main():
     
     clsNum = len(train_dataset.labelList)
     model = ERC_model(model_type, clsNum, last, freeze, initial)
+
+    if device == 'cuda' and torch.cuda.device_count() > 1:
+        print('Multi GPU Model activate')
+        model = torch.nn.Parallel(model)
+
     model = model.cuda()
     model.train() 
     
