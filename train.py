@@ -201,7 +201,7 @@ def main():
         model.train() 
         train_loss = []
         
-        for i_batch, data in enumerate(train_dataloader):
+        for i_batch, data in tqdm(enumerate(train_dataloader), desc='batch'):
             optimizer.zero_grad()
             
             if i_batch > train_sample_num:

@@ -8,7 +8,7 @@ class MELD_loader(Dataset):
     def __init__(self, txt_file, dataclass):
         self.dialogs = []
         
-        f = open(txt_file, 'r')
+        f = open(txt_file, 'r', encoding='utf-8')
         dataset = f.readlines()
         f.close()
         
@@ -59,7 +59,7 @@ class MELD_loader(Dataset):
 class Emory_loader(Dataset):
     def __init__(self, txt_file, dataclass):
         self.dialogs = []
-        f = open(txt_file, 'r')
+        f = open(txt_file, 'r', encoding='utf-8')
         dataset = f.readlines()
         f.close()
         
@@ -129,7 +129,7 @@ class IEMOCAP_loader(Dataset):
     def __init__(self, txt_file, dataclass):
         self.dialogs = []
         
-        f = open(txt_file, 'r')
+        f = open(txt_file, 'r', encoding='utf-8')
         dataset = f.readlines()
         f.close()
         
@@ -194,7 +194,7 @@ class DD_loader(Dataset):
     def __init__(self, txt_file, dataclass):
         self.dialogs = []
         
-        f = open(txt_file, 'r')
+        f = open(txt_file, 'r', encoding='utf-8')
         dataset = f.readlines()
         f.close()
         
@@ -257,7 +257,7 @@ class DD_loader(Dataset):
 class DACON_loader(Dataset):
     def __init__(self, txt_file, dataclass):
         self.dialogs = []
-        f = open(txt_file, 'r')
+        f = open(txt_file, 'r', encoding='utf-8')
         dataset = f.readlines()
         f.close()
         
