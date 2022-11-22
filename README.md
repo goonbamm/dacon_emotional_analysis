@@ -2,26 +2,42 @@
 
 <br>
 
+## Performance 📊
+----
+
+<br>
+
+|model_name| dev macro F1 score | test macro F1 score |
+|:--:|:--:|:--:|
+| Baseline | 0.4507 | 0.3890 |
+| emoBERTa-Base | 0.5901 | 0.4752 |
+| emoBERTa-Base, accumulate = 3 | 0.5901 | 0.4705 |
+| **emoBERTa-Large** | **0.6627** | **0.5153** |
+| CoMPM: roBERTa-Large (default) | 0.5381 | 0.3818 |
+| CoMPM: emoBERTa-Large (freeze) | 0.6282 | - |
+| CoMPM: emoBERTa-Large (no freeze) | 0.6342 | - |
+| CoMPM: emoBERTa-Large (freeze, focal_loss) | 0.6405 | 0.3845 |
+
+<br>
+
+* acculmulate 는 이전 발화를 함께 데이터로 넣고자, 가볍게 전처리를 해주었습니다. 현재 발화까지 포함해서 최대 3개까지 갖고 있도록 합니다. 이전 발화가 없으면, 없는 대로 둡니다.
+
+<br>
+
 ## To Do 📚
 ----
 
 <br>
 
-- CoMPM 을 Dacon Dataset 으로 Fine Tuning 해보기
+- COMET 데이터 활용
 
-    + 현재 데이터 형식은 EmoryNLP 로 변환했음.
-
-    + Large 에서 돌렸는데, AMP 꺼야 성능이 잘 나옴. 제대로 짜서 내일 돌려볼 예정
+    + emoBERTa 기반으로 활용할 예정
 
 <br>
 
-- EmoBERTa-Large 성능 측정 중
+- emoBERTa
 
-    + 원래 Large 가 GPU 가 터졌는데, 오늘부터 Colab 에서 돌아가서 돌려보고 있음.
-
-<br>
-
-- FocalLoss 적용해보기
+    + emoBERTa 논문 정독
 
 <br>
 
@@ -38,13 +54,17 @@
 
 <br>
 
-- 코드 간결화
+- Baseline
 
-- EarlyStop 적용
+    + 코드 간결화
 
-- AdamW 변경
+    + EarlyStop 적용
 
-- AMP 적용
+    + AdamW 변경
+
+    + AMP 적용
+
+<br>
 
 - 데이터 분석하기
 
@@ -54,19 +74,26 @@
 
 <br>
 
+- [CoMPM](https://github.com/rungjoo/CoMPM)
 
-- [CoMPM 논문 정독](https://heygeronimo.tistory.com/32)
+    + [CoMPM 논문 정독](https://heygeronimo.tistory.com/32)
 
-    + GPU 소모량이 커서 AMP 적용했으나, 여전히 Batch_Size = 1 인데도 돌아가지 않음.
+    + 코드 수정 및 DACON DATASET 적용
 
-    + Large 가 아닌 Base 에서 성능 확인
+    + 성능 측정
 
-        * 69.46 에서 58.04 로 떨어짐.
+        * whether freeze or not
 
-        * 확실히 Large 모델을 사용할 수 있으면 좋으나, 14GB 이상 GPU 가 필요하다.
+        * pretrained model: [RoBERTa-Large](https://huggingface.co/roberta-large) / [Emoberta-Large](https://huggingface.co/tae898/emoberta-large?text=I+like+you.+I+love+you)
+
+        * loss: CrossEntropyLoss or Focal Loss
+
+
 
 <br>
 
-- [COMET-ATOMIC-2020](https://github.com/allenai/comet-atomic-2020) 모델로 의도, 장소 등 다양한 정보 추출
+- [COMET-ATOMIC-2020](https://github.com/allenai/comet-atomic-2020)
+
+    + 모델로 의도, 장소, 원인 등 다양한 정보 추출
 
     + 총 51개의 relation 을 뽑을 것이며, 1개당 1시간이 소요되기 때문에 50시간이 지나야 끝날 것 같다.
