@@ -73,7 +73,20 @@ def dataset_setting(dataset, dyadic):
         
     return data_path, DATA_loader
 
-    
+
+def batch_setting(model_type):
+    if 'berta' in model_type:
+        make_batch = make_batch_roberta
+        
+    elif model_type == 'bert-large-uncased':
+        make_batch = make_batch_bert
+
+    else:
+        make_batch = make_batch_gpt
+        
+    return make_batch
+
+
 def main():
     # device setting
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -124,23 +137,12 @@ def main():
     data_path, DATA_loader = dataset_setting(dataset, args.dyadic)    
     
     # batch setting
-    if 'berta' in model_type:
-        make_batch = make_batch_roberta
-        
-    elif model_type == 'bert-large-uncased':
-        make_batch = make_batch_bert
-
-    else:
-        make_batch = make_batch_gpt  
+    make_batch = batch_setting(model_type)  
         
     # freeze setting
-    if freeze:
-        freeze_type = 'freeze'
-        
-    else:
-        freeze_type = 'no_freeze'
+    freeze_type = 'freeze' if freeze else 'no_freeze'
 
-    # dataset loading        
+    # dataset loading
     train_path = data_path + dataset+'_train.txt'
     dev_path = data_path + dataset+'_dev.txt'
     test_path = data_path + dataset+'_test.txt'
@@ -161,15 +163,14 @@ def main():
     test_dataset = DATA_loader(test_path, dataclass)
     test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=4, collate_fn=make_batch)
     
-    """logging and path"""
+    # logging and path
     save_path = os.path.join(dataset+'_models', model_type, initial, freeze_type, dataclass, str(sample))
-    
-    print("###Save Path### ", save_path)
-    log_path = os.path.join(save_path, 'train.log')
-
     if not os.path.exists(save_path):
         os.makedirs(save_path)
+    
+    print("###Save Path### ", save_path)
 
+    log_path = os.path.join(save_path, 'train.log')
     fileHandler = logging.FileHandler(log_path)
     
     logger.addHandler(streamHandler)
@@ -346,7 +347,7 @@ def _CalACC(model, dataloader):
     
     # label arragne
     with torch.no_grad():
-        for i_batch, data in enumerate(dataloader):            
+        for data in dataloader:            
             """Prediction"""
             batch_input_tokens, batch_labels, batch_speaker_tokens = data
             batch_input_tokens, batch_labels = batch_input_tokens.cuda(), batch_labels.cuda()
@@ -382,23 +383,23 @@ if __name__ == '__main__':
     
     """Parameters"""
     parser  = argparse.ArgumentParser(description = "Emotion Classifier" )
-    parser.add_argument( "--batch", type=int, help = "batch_size", default=1)
-    
-    parser.add_argument( "--epoch", type=int, help = 'training epohcs', default=100) # 12 for iemocap
-    parser.add_argument( "--earlystop", type=int, help = "early stop", default=3)
-    parser.add_argument( "--norm", type=int, help = "max_grad_norm", default=10)
-    parser.add_argument( "--lr", type=float, help = "learning rate", default=1e-6)
-    parser.add_argument( "--amp", action='store_true', help = "Auto Mixed Precision")
-    parser.add_argument( "--sample", type=float, help = "sampling training dataset", default=1.0) # 
-
-    parser.add_argument( "--dataset", help = 'MELD or EMORY or iemocap or dailydialog or DACON', default='MELD')
-    
-    parser.add_argument( "--pretrained", help = 'roberta-base/roberta-large or bert-large-uncased or gpt2 or gpt2-large or gpt2-medium', default = 'roberta-base')    
-    parser.add_argument( "--initial", help = 'pretrained or scratch', default = 'pretrained')
-    parser.add_argument('-dya', '--dyadic', action='store_true', help='dyadic conversation')
-    parser.add_argument('-fr', '--freeze', action='store_true', help='freezing PM')
-    parser.add_argument( "--cls", help = 'emotion or sentiment', default = 'emotion')
     parser.add_argument( "--wandb", action='store_true', help='use_wandb')
+
+    parser.add_argument( "--cls", help = 'emotion or sentiment', default = 'emotion')
+    parser.add_argument( "--dataset", help = 'MELD or EMORY or iemocap or dailydialog or DACON', default='MELD')
+    parser.add_argument('-dya', '--dyadic', action='store_true', help='dyadic conversation')
+    parser.add_argument( "--sample", type=float, help = "sampling training dataset", default=1.0)
+
+    parser.add_argument( "--batch", type=int, help = "batch_size", default=1)    
+    parser.add_argument( "--epoch", type=int, help = 'training epohcs', default=100) # 12 for iemocap
+    parser.add_argument( "--lr", type=float, help = "learning rate", default=1e-6)
+    parser.add_argument( "--norm", type=int, help = "max_grad_norm", default=10)
+    parser.add_argument( "--earlystop", type=int, help = "early stop", default=3)
+    parser.add_argument( "--amp", action='store_true', help = "Auto Mixed Precision")
+
+    parser.add_argument( "--initial", help = 'pretrained or scratch', default = 'pretrained')
+    parser.add_argument( "--pretrained", help = 'roberta-base/roberta-large or bert-large-uncased or gpt2 or gpt2-large or gpt2-medium', default = 'roberta-base')
+    parser.add_argument('-fr', '--freeze', action='store_true', help='freezing PM')
         
     args = parser.parse_args()
     
@@ -406,4 +407,4 @@ if __name__ == '__main__':
     streamHandler = logging.StreamHandler()
     
     main()
-    
+        
