@@ -30,7 +30,7 @@ def seed_everything(seed):
     torch.cuda.manual_seed(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = True
-
+    torch.backends.cudnn.enabled = True
 
 def custom_loss(loss_name, pred_outs, labels):
     """
@@ -140,6 +140,7 @@ def logger_setting(dataset, model_type, initial, freeze, dataclass, sample):
     logger.setLevel(level=logging.DEBUG)
 
     return save_path
+
 
 def main():
     # device setting
