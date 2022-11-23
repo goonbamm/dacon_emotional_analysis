@@ -6,17 +6,13 @@ warnings.filterwarnings(action='ignore')
 
 import numpy as np
 import pandas as pd
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 
 from tqdm.auto import tqdm
 from sklearn.preprocessing import LabelEncoder
 
 from torch import nn
 from torch.optim import AdamW
-import torch.nn.functional as F
-from torch.cuda.amp import autocast
-from torch.cuda.amp import GradScaler
+from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, get_scheduler
 
@@ -32,7 +28,7 @@ def train(CONFIG, model, optimizer, scheduler, train_loader, valid_loader, devic
     scaler = GradScaler(enabled=CONFIG['USE_AMP'])
 
     best_score = 0
-    best_model_path = os.path.join(data_path, 'best_model')
+    best_model = None
 
     patience = 0
 
@@ -47,7 +43,7 @@ def train(CONFIG, model, optimizer, scheduler, train_loader, valid_loader, devic
             input_id = input_ids.to(device)
             mask = attention_mask.to(device)
 
-            with torch.cuda.amp.autocast(enabled=CONFIG['USE_AMP']):
+            with autocast(enabled=CONFIG['USE_AMP']):
               output = model(input_id, mask)
               batch_loss = criterion(output, train_label.long())
 
@@ -70,12 +66,8 @@ def train(CONFIG, model, optimizer, scheduler, train_loader, valid_loader, devic
 
             best_score = valid_score
             patience = 0
-
-            # save best model
-            if os.path.exists(best_model_path):
-              shutil.rmtree(best_model_path) # delete everything in the directory
-
-            model.save_pretrained(best_model_path)
+            
+            best_model = model
 
         else:
           patience += 1
@@ -117,7 +109,7 @@ def inference(data_path, infer_model, le, tokenizer, device, relation_name):
 
     test = pd.read_csv(os.path.join(data_path, 'test.csv'))
     test = DaconDataset(test, tokenizer, mode ='test')
-    test_dataloader = torch.utils.data.DataLoader(test, batch_size=CONFIG['BATCH_SIZE'], shuffle=False)
+    test_dataloader = DataLoader(test, batch_size=CONFIG['BATCH_SIZE'], shuffle=False)
 
     infer_model.to(device)
     infer_model.eval()
@@ -166,14 +158,14 @@ def main(CONFIG, data_path, best_model_path, relation_num):
     train_dataset = DaconDataset(train_csv, relation_name, tokenizer, mode='train')
     valid_dataset = DaconDataset(valid_csv, relation_name, tokenizer, mode='valid')
 
-    train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=CONFIG['BATCH_SIZE'], shuffle=True)
-    valid_dataloader = torch.utils.data.DataLoader(valid_dataset, batch_size=CONFIG['BATCH_SIZE'], shuffle=False)
+    train_dataloader = DataLoader(train_dataset, batch_size=CONFIG['BATCH_SIZE'], shuffle=True)
+    valid_dataloader = DataLoader(valid_dataset, batch_size=CONFIG['BATCH_SIZE'], shuffle=False)
 
     # model setting
     model = BaseModel(checkpoint=CONFIG['CHECKPOINT'], num_classes=len(le.classes_))
 
     # optimizer & scheduler
-    optimizer = torch.optim.AdamW(params = model.parameters(), lr = CONFIG["LEARNING_RATE"])
+    optimizer = AdamW(params = model.parameters(), lr = CONFIG["LEARNING_RATE"])
     num_training_steps = CONFIG['EPOCHS'] * len(train_dataloader)
     lr_scheduler = get_scheduler(name=CONFIG['SCHEDULER_NAME'], optimizer=optimizer,
                                 num_warmup_steps=CONFIG['NUM_WARMUP_STEPS'],
