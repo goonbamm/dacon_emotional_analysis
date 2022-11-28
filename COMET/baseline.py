@@ -16,9 +16,9 @@ from torch.cuda.amp import GradScaler, autocast
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, get_scheduler
 
-from utils import seed_everything, competition_metric, drop_columns_by_none_ratio
-from dataset import DaconDataset
 from model import BaseModel
+from dataset import DaconDataset
+from utils import seed_everything, competition_metric, drop_columns_by_none_ratio
 
 
 def train(CONFIG, model, optimizer, scheduler, train_loader, valid_loader, device):
@@ -108,7 +108,7 @@ def inference(CONFIG, data_path, infer_model, le, tokenizer, device, relation_na
     infer_model.eval()
 
     test = pd.read_csv(os.path.join(data_path, 'comet_test.csv'))
-    test = DaconDataset(test, relation_name, tokenizer, mode ='test')
+    test = DaconDataset(test, relation_name, tokenizer, mode='test')
     test_dataloader = DataLoader(test, batch_size=1, shuffle=False)
 
     infer_model.to(device)
@@ -130,7 +130,7 @@ def inference(CONFIG, data_path, infer_model, le, tokenizer, device, relation_na
     submit.to_csv(f'./result/{relation_name}.csv', index=False)
 
 
-def main(CONFIG, data_path, best_model_path, relation_num):
+def main(CONFIG, data_path, best_model_path, relation_num=0):
     # device setting
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     print('device', device)
@@ -141,7 +141,9 @@ def main(CONFIG, data_path, best_model_path, relation_num):
     # dataset setting    
     data_csv = pd.read_csv(os.path.join(data_path, 'comet_train.csv'))
     data_csv, drop_list = drop_columns_by_none_ratio(data_csv, threshold=0.3)
-    relation_name = data_csv.columns[4 + relation_num] # 0 ~ 4: ID, Utterance, Speaker, Dialogue_ID, Target
+    
+    # 0 ~ 4: ID, Utterance, Speaker, Dialogue_ID, Target
+    relation_name = data_csv.columns[4 + relation_num] if relation_num != 0 else 'none'
     
     le = LabelEncoder()
     le = le.fit(data_csv['Target'])
@@ -214,6 +216,5 @@ if __name__ == '__main__':
 
     data_path = './dataset'
     best_model_path = './model_weight'
-
-    for i in range(29, 50, 2):
-        main(CONFIG=CONFIG, data_path=data_path, best_model_path=best_model_path, relation_num=i)
+    
+    main(CONFIG=CONFIG, data_path=data_path, best_model_path=best_model_path)

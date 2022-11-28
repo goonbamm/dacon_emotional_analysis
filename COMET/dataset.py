@@ -1,4 +1,4 @@
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import Dataset
 
 
 class DaconDataset(Dataset):      
@@ -13,9 +13,15 @@ class DaconDataset(Dataset):
   
     def __getitem__(self, idx):
         text = self.dataset['Utterance'][idx]
-        comet_text = f' {self.r_name}: ' + str(self.dataset[self.r_name][idx])
-        inputs = self.tokenizer(text, comet_text, padding='max_length', max_length=512,
-                                truncation=True, return_tensors='pt')
+        
+        if self.r_name != 'none':
+            comet_text = f' {self.r_name}: ' + str(self.dataset[self.r_name][idx])
+            inputs = self.tokenizer(text, comet_text, padding='max_length', max_length=512,
+                                    truncation=True, return_tensors='pt')
+
+        else:
+            inputs = self.tokenizer(text, padding='max_length', max_length=512,
+                                    truncation=True, return_tensors='pt')            
 
         input_ids = inputs['input_ids'][0]
         attention_mask = inputs['attention_mask'][0]
