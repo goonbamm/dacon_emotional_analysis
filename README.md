@@ -12,11 +12,12 @@
 | Baseline | 0.4507 | 0.3890 |
 | emoBERTa-Base | 0.5901 | 0.4752 |
 | emoBERTa-Base, accumulate = 3 | 0.5901 | 0.4705 |
-| **emoBERTa-Large** | **0.6627** | **0.5153** |
+| emoBERTa-Large | 0.6627 | 0.5153 |
 | CoMPM: roBERTa-Large (default) | 0.5381 | 0.3818 |
 | CoMPM: emoBERTa-Large (freeze) | 0.6282 | - |
 | CoMPM: emoBERTa-Large (no freeze) | 0.6342 | - |
 | CoMPM: emoBERTa-Large (freeze, focal_loss) | 0.6405 | 0.3845 |
+| **emoBERTa-Large: COMET - isFilledBy** | **0.6676** | **0.5226** |
 
 <br>
 
@@ -29,15 +30,15 @@
 
 <br>
 
-- COMET 데이터 활용
+- [EmoBERTa](https://github.com/tae898/erc)
 
-    + emoBERTa 기반으로 활용할 예정
+    + 코드 적용 및 실험 제출
 
 <br>
 
-- emoBERTa
+- Test Valid 와의 Score 의 격차가 심한데, 혹시 overfitting, underfitting 이 일어나고 있는 것은 아닐까?
 
-    + emoBERTa 논문 정독
+    + epoch 별로 제출해보고 있음.
 
 <br>
 
@@ -88,12 +89,20 @@
 
         * loss: CrossEntropyLoss or Focal Loss
 
-
-
 <br>
 
 - [COMET-ATOMIC-2020](https://github.com/allenai/comet-atomic-2020)
 
     + 모델로 의도, 장소, 원인 등 다양한 정보 추출
 
-    + 총 51개의 relation 을 뽑을 것이며, 1개당 1시간이 소요되기 때문에 50시간이 지나야 끝날 것 같다.
+    + 51개 항목 모두 생성 완료
+
+    + None 비율이 30% 가 넘지 않는 데이터만 실험에 사용
+
+    + 실험 사용 완료 (결과는 COMET 폴더 참고)
+
+<br>
+
+- [EmoBERTa](https://github.com/tae898/erc)
+
+    + [CoMPM 논문 정독](https://heygeronimo.tistory.com/33)
