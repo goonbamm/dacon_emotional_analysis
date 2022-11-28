@@ -104,12 +104,12 @@ def validation(model, criterion, test_loader, device):
     return val_loss, val_f1    
 
 
-def inference(data_path, infer_model, le, tokenizer, device, relation_name):
+def inference(CONFIG, data_path, infer_model, le, tokenizer, device, relation_name):
     infer_model.eval()
 
-    test = pd.read_csv(os.path.join(data_path, 'test.csv'))
-    test = DaconDataset(test, tokenizer, mode ='test')
-    test_dataloader = DataLoader(test, batch_size=CONFIG['BATCH_SIZE'], shuffle=False)
+    test = pd.read_csv(os.path.join(data_path, 'comet_test.csv'))
+    test = DaconDataset(test, relation_name, tokenizer, mode ='test')
+    test_dataloader = DataLoader(test, batch_size=1, shuffle=False)
 
     infer_model.to(device)
     infer_model.eval()
@@ -139,7 +139,7 @@ def main(CONFIG, data_path, best_model_path, relation_num):
     seed_everything(CONFIG['SEED'])
 
     # dataset setting    
-    data_csv = pd.read_csv(os.path.join(data_path, 'train.csv'))
+    data_csv = pd.read_csv(os.path.join(data_path, 'comet_train.csv'))
     data_csv, drop_list = drop_columns_by_none_ratio(data_csv, threshold=0.3)
     relation_name = data_csv.columns[4 + relation_num] # 0 ~ 4: ID, Utterance, Speaker, Dialogue_ID, Target
     
@@ -174,7 +174,7 @@ def main(CONFIG, data_path, best_model_path, relation_num):
 
     wandb.init(project='dacon_sentiment_analysis', name='{}_relation: {}'.format(CONFIG['CHECKPOINT'], relation_name))
 
-    infer_model = train(model, optimizer, lr_scheduler, train_dataloader, valid_dataloader, device)
+    infer_model = train(CONFIG, model, optimizer, lr_scheduler, train_dataloader, valid_dataloader, device)
     wandb.finish()
     
     """
@@ -184,7 +184,7 @@ def main(CONFIG, data_path, best_model_path, relation_num):
     torch.save(infer_model.state_dict(), os.path.join(best_model_path, 'baseline.pt'))
     """
     
-    inference(data_path, infer_model, le, tokenizer, device, relation_name)
+    inference(CONFIG, data_path, infer_model, le, tokenizer, device, relation_name)
     
     del(infer_model)
 
@@ -206,7 +206,7 @@ if __name__ == '__main__':
 
         # training
         'EPOCHS': 100,
-        'BATCH_SIZE': 16,
+        'BATCH_SIZE': 8,
         'EARLY_STOP': 3,
         'USE_AMP': True,
         'MAX_NORM': 5,
@@ -215,5 +215,5 @@ if __name__ == '__main__':
     data_path = './dataset'
     best_model_path = './model_weight'
 
-    relation_num = 1
-    main(CONFIG=CONFIG, data_path=data_path, best_model_path=best_model_path, relation_num=relation_num)
+    for i in range(29, 50, 2):
+        main(CONFIG=CONFIG, data_path=data_path, best_model_path=best_model_path, relation_num=i)
