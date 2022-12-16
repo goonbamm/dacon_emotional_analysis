@@ -34,7 +34,7 @@ def train(CONFIG, model, optimizer, scheduler, train_loader, valid_loader, devic
 
     for epoch_num in range(CONFIG["EPOCHS"]):
         model.train()
-        train_loss = []
+        train_loss = list()
 
         for input_ids, attention_mask, train_label in tqdm(train_loader):
             optimizer.zero_grad()
